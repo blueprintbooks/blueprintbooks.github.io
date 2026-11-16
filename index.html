@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en" class="hold">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Blueprint book</title>
+<link rel="stylesheet" href="book.css">
+<script>
+  // Nothing is painted until the first view is whole (or after 1 s at most), so a reload looks still.
+  setTimeout(function () { document.documentElement.classList.remove('hold'); }, 1000);
+</script>
+<script src="marked.min.js" defer></script>
+<script src="book.js" defer></script>
+</head>
+<body>
+<header class="top">
+  <a class="brand" href="#/">Blueprint book</a>
+  <span class="book-title" id="book-title"></span>
+  <button type="button" class="menu-toggle" id="menu-toggle" aria-label="Menu" hidden>Menu</button>
+  <button type="button" class="signout" id="signout" hidden>Sign out</button>
+</header>
+
+<form class="signin" id="signin" hidden autocomplete="on">
+  <h1>Sign in</h1>
+  <p>This book is read from a private repository with a read-only GitHub token.</p>
+  <label>Repository <input name="username" id="repo" autocomplete="username" placeholder="owner/repository" required></label>
+  <label>Token <input name="password" id="token" type="password" autocomplete="current-password" required></label>
+  <button type="submit">Sign in</button>
+  <p class="error" id="signin-error" hidden></p>
+</form>
+
+<div class="layout" id="layout" hidden>
+  <nav class="side" id="side"></nav>
+  <main id="main"></main>
+</div>
+</body>
+</html>
