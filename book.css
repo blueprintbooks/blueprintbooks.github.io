@@ -7,8 +7,8 @@ a { color: var(--link); text-decoration: none; }
 a:hover { text-decoration: underline; }
 button { font: inherit; color: var(--ink); background: none; border: 1px solid var(--line); border-radius: 4px; padding: 3px 10px; cursor: pointer; }
 button:hover { background: var(--hover); }
-button:focus, input:focus { outline: none; }
-button:focus-visible { outline: 1px solid #bdc1c6; outline-offset: 1px; }
+button:focus, input:focus, a:focus { outline: none; }
+button:focus-visible, a:focus-visible { outline: 1px solid #bdc1c6; outline-offset: 1px; }
 
 .top { display: flex; align-items: center; gap: 16px; padding: 10px 24px; border-bottom: 1px solid var(--line); }
 .top .brand { color: var(--ink); font-weight: 600; }
@@ -30,7 +30,6 @@ button:focus-visible { outline: 1px solid #bdc1c6; outline-offset: 1px; }
 .side h2 { font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: #888; margin: 18px 0 4px; }
 .side h2:first-child { margin-top: 0; }
 .side a { display: block; color: var(--ink); padding: 2px 0; }
-.side a.active { font-weight: normal; color: var(--ink); }  /* the menu stays quiet: the current page looks the same */
 main { flex: 1 1 auto; min-width: 0; padding: 16px 32px 60px; }
 main h1 { font-size: 28px; font-weight: 600; margin: 8px 0 16px; }
 main h2 { font-size: 21px; font-weight: 600; margin: 28px 0 10px; }
