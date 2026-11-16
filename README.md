@@ -1,4 +1,4 @@
-# Blueprint book
+# Blueprint books
 
 A closed reading site for the internal documentation of a set of tools: how each is built, its earlier versions and
 its guide. Each tool is one book. The page holds no content: it reads the books from a private repository in the

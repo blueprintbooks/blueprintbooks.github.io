@@ -1,4 +1,4 @@
-// The blueprint book: reads its books from a private repository with the visitor's read-only token, in the browser.
+// Blueprint books: reads its books from a private repository with the visitor's read-only token, in the browser.
 // The repository's top-level folders are the books; each holds nav.json (title and menu) and its pages (.md or .html).
 // Addresses: #/ the shelf, #/<book> its first page, #/<book>/<page> a page. A file is fetched by its git blob sha and
 // kept in localStorage as bb:<book>:<sha>, so it is downloaded once until it changes; keys of a book no longer in its
@@ -124,7 +124,7 @@
         $('side').innerHTML = '';
         $('book-title').textContent = '';
         $('menu-toggle').hidden = true;
-        document.title = 'Blueprint book';
+        document.title = 'Blueprint books';
         signedIn(true);
         show();
       });
