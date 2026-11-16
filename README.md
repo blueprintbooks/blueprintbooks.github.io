@@ -9,4 +9,4 @@ browser with a read-only GitHub token, which the visitor types once (a password 
 - `marked.min.js`: marked 12.0.2 (MIT licence), turns the Markdown pages into HTML.
 
 The token is kept in the browser's storage for this origin, which every Pages site of the organisation shares
-(`https://blueprint-book.github.io/<repository>/`). So the organisation has no other Pages site.
+(`https://blueprintbooks.github.io/<repository>/`). So the organisation has no other Pages site.
