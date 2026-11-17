@@ -1,10 +1,10 @@
 // Blueprint books: reads its books from a private repository with the visitor's read-only token, in the browser.
 // The repository's top-level folders are the books; each holds nav.json (title and menu) and its pages (.md or .html).
-// Addresses: #/<book> its first page, #/<book>/<page> a page; #/ opens the book last read in this browser, else the
-// first. The top bar holds the book's name (its menu lists the other books) and the book's chapters (nav.json's
-// sections); the side menu lists the pages of the chapter shown, and is left out for a chapter of one page. A file is fetched by its git blob sha and
-// kept in localStorage as bb:<book>:<sha>, so it is downloaded once until it changes; keys of a book no longer in its
-// listing are dropped, and sign-out drops them all.
+// Addresses: #/<book> its first page, #/<book>/<page> a page; #/ opens the book last read in this browser, else
+// the first. The top bar holds the book's name (its menu lists the other books) and the book's chapters (nav.json's
+// sections); the side menu lists the pages of the chapter shown, and is left out for a chapter of one page. A file
+// is fetched by its git blob sha and kept in localStorage as bb:<book>:<sha>, so it is downloaded once until it
+// changes; keys of a book no longer in its listing are dropped, and sign-out drops them all.
 (function () {
   'use strict';
   var API = 'https://api.github.com/repos/';
@@ -24,6 +24,7 @@
   var listings = {};  // book -> {file name: sha}, read once per visit
   var navs = {};      // book -> nav.json
   var current = 0;    // the route being shown; an older one that finishes late is dropped
+  var shown = null;   // the book shown, left out of the books menu (null on an error: every book listed)
 
   function clearPages() { store.keys().forEach(function (k) { if (k.slice(0, 3) === 'bb:') store.del(k); }); }
   function forget() { books = null; listings = {}; navs = {}; }
@@ -113,7 +114,15 @@
     if (id !== current) return;
     if (err instanceof SignInError) return signIn(err.message);
     $('main').innerHTML = '<p class="note">' + esc(err.message || err) + '</p>';
+    // No book's chapters over the error; the books menu stays, as the way to a book that opens.
+    shown = null;
+    $('book-title').textContent = 'Books';
+    $('books').hidden = false;
+    $('chapters').innerHTML = '';
     signedIn(true);
+    $('side').hidden = true;
+    $('menu-toggle').hidden = true;
+    document.title = 'Books';
     show();
   }
 
@@ -123,15 +132,17 @@
       if (id !== current) return;
       if (!list.length) throw new Error('There are no books yet.');
       var last = store.get('bb-last');
-      location.replace(href(list.indexOf(last) >= 0 ? last : list[0]).replace(/&amp;/g, '&'));
+      location.replace(href(list.indexOf(last) >= 0 ? last : list[0]));
     });
   }
 
-  // The book's name opens a menu of the other books.
-  function booksMenu(book) {
+  // The book's name opens a menu of the other books, read when it is opened.
+  function booksMenu() {
+    var id = current, book = shown;
     return shelfList().then(function (list) {
       var others = list.filter(function (b) { return b !== book; });
       return Promise.all(others.map(function (b) { return nav(b).catch(function () { return null; }); })).then(function (navList) {
+        if (id !== current) return;
         var html = '';
         others.forEach(function (b, i) { if (navList[i]) html += '<a href="' + href(b) + '">' + esc(navList[i].title) + '</a>'; });
         $('books-menu').innerHTML = html || '<span>No other books yet</span>';
@@ -161,9 +172,8 @@
         $('main').innerHTML = file.slice(-3) === '.md' ? marked.parse(text) : text;
         $('book-title').textContent = n.title;
         $('books').hidden = false;
-        closeBooks();
+        shown = book;
         store.set('bb-last', book);
-        booksMenu(book).catch(function () { /* the menu stays empty */ });
         signedIn(true);
         $('side').hidden = pages.length < 2;
         $('menu-toggle').hidden = pages.length < 2;
@@ -179,6 +189,7 @@
 
   function route() {
     var id = ++current, parts;
+    closeBooks();
     if (!store.get('bb-repo') || !store.get('bb-token')) return signIn('');
     try {
       parts = location.hash.replace(/^#\/?/, '').split('/').filter(Boolean).map(decodeURIComponent);
@@ -207,6 +218,10 @@
     $('book-title').addEventListener('click', function (e) {
       e.stopPropagation();
       var open = $('books-menu').hidden;
+      if (open) {
+        $('books-menu').innerHTML = '<span>Reading the books</span>';
+        booksMenu().catch(function () { $('books-menu').innerHTML = '<span>The books could not be read</span>'; });
+      }
       $('books-menu').hidden = !open;
       $('book-title').setAttribute('aria-expanded', String(open));
     });
