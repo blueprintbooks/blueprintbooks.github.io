@@ -2,7 +2,8 @@
 // The repository's top-level folders are the books; each holds nav.json (title and menu) and its pages (.md or .html).
 // Addresses: #/<book> its first page, #/<book>/<page> a page; #/ opens the book last read in this browser, else
 // the first. The top bar holds the book's name (its menu lists the other books) and the book's chapters (nav.json's
-// sections); the side menu lists the pages of the chapter shown, and is left out for a chapter of one page. A file
+// sections); #/<book>/<page>#<heading> opens a page at a heading (headings get GitHub's ids), and a link #<heading>
+// in a page goes to that heading of the page shown. The side menu lists the pages of the chapter shown, and is left out for a chapter of one page. A file
 // is fetched by its git blob sha and kept in localStorage as bb:<book>:<sha>, so it is downloaded once until it
 // changes; keys of a book no longer in its listing are dropped, and sign-out drops them all.
 (function () {
@@ -27,7 +28,7 @@
   var shown = null;   // the book shown, left out of the books menu (null on an error: every book listed)
 
   function clearPages() { store.keys().forEach(function (k) { if (k.slice(0, 3) === 'bb:') store.del(k); }); }
-  function forget() { books = null; listings = {}; navs = {}; }
+  function forget() { books = null; listings = {}; navs = {}; shownPage = null; }
   function show() { document.documentElement.classList.remove('hold'); }
   function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
   function href(book, page) { return esc('#/' + encodeURIComponent(book) + (page ? '/' + encodeURIComponent(page) : '')); }
@@ -112,6 +113,7 @@
 
   function fail(id, err) {
     if (id !== current) return;
+    shownPage = null;
     if (err instanceof SignInError) return signIn(err.message);
     $('main').innerHTML = '<p class="note">' + esc(err.message || err) + '</p>';
     // No book's chapters over the error; the books menu stays, as the way to a book that opens.
@@ -150,9 +152,37 @@
     });
   }
 
+  // Headings get the ids GitHub gives them, so links to a section of a page (#a-heading) find it.
+  function headingIds() {
+    var seen = {};
+    $('main').querySelectorAll('h1, h2, h3, h4, h5, h6').forEach(function (h) {
+      if (h.id) return;
+      var slug = h.textContent.trim().toLowerCase().replace(/[^\p{L}\p{N}_\- ]/gu, '').replace(/ /g, '-');
+      h.id = seen[slug] ? slug + '-' + seen[slug] : slug;
+      seen[slug] = (seen[slug] || 0) + 1;
+    });
+  }
+
+  // A page's own scripts (an HTML page that draws its figure) run once it is in place.
+  function runScripts() {
+    $('main').querySelectorAll('script').forEach(function (old) {
+      var s = document.createElement('script');
+      s.textContent = old.textContent;
+      old.replaceWith(s);
+    });
+  }
+
+  function scrollToHeading(anchor) {
+    var el = anchor && document.getElementById(anchor);
+    if (el && $('main').contains(el)) el.scrollIntoView(); else window.scrollTo(0, 0);
+  }
+
   function closeBooks() { $('books-menu').hidden = true; $('book-title').setAttribute('aria-expanded', 'false'); }
 
-  function page(id, book, name) {
+  var shownPage = null;   // book/page shown, so a link to another heading of it only scrolls
+
+  function page(id, book, name, anchor) {
+    if (shownPage === book + '/' + name && name) { scrollToHeading(anchor); return Promise.resolve(); }
     return nav(book).then(function (n) {
       var first = n.sections[0] && n.sections[0].pages[0];
       name = name || (first && first.page) || 'index';
@@ -170,6 +200,9 @@
         var pages = chapter ? chapter.pages : [];
         $('side').innerHTML = pages.map(function (p) { return '<a href="' + href(book, p.page) + '">' + esc(p.title) + '</a>'; }).join('');
         $('main').innerHTML = file.slice(-3) === '.md' ? marked.parse(text) : text;
+        headingIds();
+        runScripts();
+        shownPage = book + '/' + name;
         $('book-title').textContent = n.title;
         $('books').hidden = false;
         shown = book;
@@ -180,7 +213,7 @@
         if (window.matchMedia('(max-width: 760px)').matches) $('side').classList.add('closed');
         var h1 = $('main').querySelector('h1');
         document.title = (h1 ? h1.textContent + ' · ' : '') + n.title;
-        window.scrollTo(0, 0);
+        scrollToHeading(anchor);
         show();
         prefetch(book);
       });
@@ -188,15 +221,17 @@
   }
 
   function route() {
-    var id = ++current, parts;
+    var id = ++current, parts, anchor;
     closeBooks();
     if (!store.get('bb-repo') || !store.get('bb-token')) return signIn('');
     try {
-      parts = location.hash.replace(/^#\/?/, '').split('/').filter(Boolean).map(decodeURIComponent);
+      var hash = location.hash.replace(/^#\/?/, ''), at = hash.indexOf('#');
+      if (at >= 0) { anchor = decodeURIComponent(hash.slice(at + 1)); hash = hash.slice(0, at); }
+      parts = hash.split('/').filter(Boolean).map(decodeURIComponent);
     } catch (e) {
       return fail(id, new Error('This address cannot be read.'));
     }
-    (parts.length ? page(id, parts[0], parts[1]) : openDefault(id)).catch(function (err) { fail(id, err); });
+    (parts.length ? page(id, parts[0], parts[1], anchor) : openDefault(id)).catch(function (err) { fail(id, err); });
   }
 
   // The side menu's width: dragged by the gap after it, a double click gives the usual width back; kept in the browser.
@@ -239,6 +274,7 @@
       route();
     });
     $('signout').addEventListener('click', function () {
+      shownPage = null;
       store.del('bb-token');
       clearPages();
       forget();
@@ -259,6 +295,15 @@
     document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeBooks(); });
     splitter();
     $('menu-toggle').addEventListener('click', function () { $('side').classList.toggle('closed'); });
+    // A link to a heading of the page shown (#a-heading) scrolls there; the address keeps the page.
+    $('main').addEventListener('click', function (e) {
+      var a = e.target.closest('a[href^="#"]');
+      if (!a || a.getAttribute('href').charAt(1) === '/') return;
+      e.preventDefault();
+      var anchor = decodeURIComponent(a.getAttribute('href').slice(1));
+      if (shownPage) history.replaceState(null, '', '#/' + shownPage.split('/').map(encodeURIComponent).join('/') + '#' + encodeURIComponent(anchor));
+      scrollToHeading(anchor);
+    });
     $('side').addEventListener('click', function (e) {
       if (e.target.closest('a') && window.matchMedia('(max-width: 760px)').matches) $('side').classList.add('closed');
     });
