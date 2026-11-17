@@ -15,7 +15,8 @@ button:focus-visible, a:focus-visible { outline: 1px solid #bdc1c6; outline-offs
 .top { display: flex; align-items: center; gap: 16px; padding: 12px 24px; font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; font-weight: 300; }
 .top .books { position: relative; }
 .top .book-title { border: 0; padding: 0; color: #888; font-size: 22px; font-weight: 300; letter-spacing: .5px; background: none; }
-.top .book-title::after { content: " \25BE"; font-size: 12px; color: #aaa; }
+/* The menu sign: a thin chevron pointing down (">" turned), in the title's grey. */
+.top .book-title::after { content: ""; display: inline-block; width: 7px; height: 7px; margin: 0 2px 0 10px; border: solid currentColor; border-width: 0 1.5px 1.5px 0; transform: translateY(-5px) rotate(45deg); }
 .top .book-title:hover { background: none; color: #666; }
 .books-menu { position: absolute; left: 0; top: 100%; margin-top: 6px; min-width: 200px; background: #fff; border: 1px solid #ddd; border-radius: 4px; padding: 4px 0; z-index: 10; box-shadow: 0 2px 6px rgba(0,0,0,.06); }
 .books-menu a, .books-menu span { display: block; padding: 4px 14px; color: #666; font-size: 15px; white-space: nowrap; }
