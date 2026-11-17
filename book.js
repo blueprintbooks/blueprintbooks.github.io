@@ -1,9 +1,10 @@
 // Blueprint books: reads its books from a private repository with the visitor's read-only token, in the browser.
 // The repository's top-level folders are the books; each holds nav.json (title and menu) and its pages (.md or .html).
 // Addresses: #/<book> its first page, #/<book>/<page> a page; #/ opens the book last read in this browser, else
-// the first. The top bar holds the book's name (its menu lists the other books) and the book's chapters (nav.json's
-// sections); #/<book>/<page>#<heading> opens a page at a heading (headings get GitHub's ids), and a link #<heading>
-// in a page goes to that heading of the page shown. The side menu lists the pages of the chapter shown, and is left out for a chapter of one page. A file
+// the first. The top bar holds the book's name (its menu lists the other books); #/<book>/<page>#<heading> opens a
+// page at a heading (headings get GitHub's ids), and a link #<heading> in a page goes to that heading of the page
+// shown. The side menu is the book's contents, as a book's: every section of nav.json with its pages, always whole;
+// a section of one page named as the page is that page's line alone. A file
 // is fetched by its git blob sha and kept in localStorage as bb:<book>:<sha>, so it is downloaded once until it
 // changes; keys of a book no longer in its listing are dropped, and sign-out drops them all.
 (function () {
@@ -105,7 +106,6 @@
     signedIn(false);
     $('menu-toggle').hidden = true;
     $('books').hidden = true;
-    $('chapters').innerHTML = '';
     $('repo').value = store.get('bb-repo') || '';
     $('signin-error').textContent = message || '';
     $('signin-error').hidden = !message;
@@ -117,11 +117,10 @@
     shownPage = null;
     if (err instanceof SignInError) return signIn(err.message);
     $('main').innerHTML = '<p class="note">' + esc(err.message || err) + '</p>';
-    // No book's chapters over the error; the books menu stays, as the way to a book that opens.
+    // No book's contents beside the error; the books menu stays, as the way to a book that opens.
     shown = null;
     $('book-title').textContent = 'Books';
     $('books').hidden = false;
-    $('chapters').innerHTML = '';
     signedIn(true);
     $('side').hidden = true;
     $('menu-toggle').hidden = true;
@@ -194,6 +193,17 @@
 
   function closeBooks() { $('books-menu').hidden = true; $('book-title').setAttribute('aria-expanded', 'false'); }
 
+  // The book's contents: each section as a heading with its pages under it; a section of one page with the page's
+  // own title is the page's line alone (Architecture), so a heading never sits over a single line repeating it.
+  function contents(book, n) {
+    return n.sections.map(function (s) {
+      var links = s.pages.map(function (p) { return '<a href="' + href(book, p.page) + '">' + esc(p.title) + '</a>'; }).join('');
+      if (!links) return '';
+      if (s.pages.length === 1 && s.pages[0].title === s.section) return '<div class="part">' + links + '</div>';
+      return '<div class="part"><div class="part-name">' + esc(s.section) + '</div><div class="part-pages">' + links + '</div></div>';
+    }).join('');
+  }
+
   var shownPage = null;   // book/page shown, so a link to another heading of it only scrolls
   var shownBy = 0;        // the route that showed it
 
@@ -207,14 +217,7 @@
       if (!file) throw new Error('There is no page "' + name + '" in this book.');
       return blob(book, files[file]).then(function (text) {
         if (id !== current) return;
-        var chapter = n.sections.filter(function (s) {
-          return s.pages.some(function (p) { return p.page === name; });
-        })[0];
-        $('chapters').innerHTML = n.sections.map(function (s) {
-          return s.pages.length ? '<a href="' + href(book, s.pages[0].page) + '">' + esc(s.section) + '</a>' : '';
-        }).join('');
-        var pages = chapter ? chapter.pages : [];
-        $('side').innerHTML = pages.map(function (p) { return '<a href="' + href(book, p.page) + '">' + esc(p.title) + '</a>'; }).join('');
+        $('side').innerHTML = contents(book, n);
         $('main').innerHTML = file.slice(-3) === '.md' ? marked.parse(text) : text;
         headingIds();
         shownPage = book + '/' + name;
@@ -224,8 +227,9 @@
         shown = book;
         store.set('bb-last', book);
         signedIn(true);
-        $('side').hidden = pages.length < 2;
-        $('menu-toggle').hidden = pages.length < 2;
+        var count = n.sections.reduce(function (c, s) { return c + s.pages.length; }, 0);
+        $('side').hidden = count < 2;
+        $('menu-toggle').hidden = count < 2;
         if (window.matchMedia('(max-width: 760px)').matches) $('side').classList.add('closed');
         var h1 = $('main').querySelector('h1');
         document.title = (h1 ? h1.textContent + ' · ' : '') + n.title;

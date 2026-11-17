@@ -10,8 +10,7 @@ button:hover { background: var(--hover); }
 button:focus, input:focus, a:focus { outline: none; }
 button:focus-visible, a:focus-visible { outline: 1px solid #bdc1c6; outline-offset: 1px; }
 
-/* The top bar as quiet as the viewer's: the book's name (a menu of the other books) and its chapters, light grey,
-   weight 300, the current chapter not marked (hub web/navigation.md). */
+/* The top bar as quiet as the viewer's: the book's name (a menu of the other books), light grey, weight 300. */
 .top { display: flex; align-items: center; gap: 16px; padding: 12px 24px; font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; font-weight: 300; }
 .top .books { position: relative; }
 .top .book-title { border: 0; padding: 0; color: #888; font-size: 22px; font-weight: 300; letter-spacing: .5px; background: none; }
@@ -22,9 +21,7 @@ button:focus-visible, a:focus-visible { outline: 1px solid #bdc1c6; outline-offs
 .books-menu a, .books-menu span { display: block; padding: 4px 14px; color: #666; font-size: 15px; white-space: nowrap; }
 .books-menu a:hover { background: var(--hover); }
 .books-menu span { color: #aaa; }
-.top .chapters { margin-left: auto; display: flex; flex-wrap: wrap; gap: 4px 18px; font-size: 15px; letter-spacing: .5px; }
-.top .chapters a { color: #999; }
-.top .signout { border: 0; padding: 0; color: #aaa; font-size: 13px; }
+.top .signout { margin-left: auto; border: 0; padding: 0; color: #aaa; font-size: 13px; }
 .top .signout:hover { background: none; }
 .top .menu-toggle { border: 0; padding: 0; color: #999; font-size: 15px; font-weight: 300; display: none; }
 .top .menu-toggle:hover { background: none; }
@@ -42,6 +39,10 @@ button:focus-visible, a:focus-visible { outline: 1px solid #bdc1c6; outline-offs
    click gives the usual width back, kept in the browser (bb-side-w). Nothing drawn in the gap, the cursor shows it. */
 .side { flex: 0 0 var(--side-w, 240px); position: sticky; top: 0; max-height: 100vh; overflow-y: auto; padding: 20px 12px 40px 24px; font-size: 14px; }
 .side a { display: block; color: var(--ink); padding: 2px 0; }
+/* The contents as a book's: a section's name in grey over its pages, set in a little; the page shown is not marked. */
+.side .part + .part { margin-top: 10px; }
+.side .part-name { color: #888; padding: 2px 0; }
+.side .part-pages { padding-left: 12px; }
 .split { flex: 0 0 12px; align-self: stretch; position: sticky; top: 0; height: 100vh; cursor: col-resize; touch-action: none; }
 .side[hidden] + .split { display: none; }
 body.splitting, body.splitting * { cursor: col-resize !important; user-select: none; }
@@ -60,8 +61,8 @@ main img { max-width: 100%; }
 
 @media (max-width: 760px) {
   .top { padding: 10px 16px; flex-wrap: wrap; }
-  .top .chapters { margin-left: 0; order: 3; flex-basis: 100%; }
   .top .books { margin-right: auto; }
+  .top .signout { margin-left: 0; }
   .layout { display: block; }
   .side { position: static; max-height: none; padding: 12px 16px; border-bottom: 1px solid var(--line); }
   .top .menu-toggle { display: inline-block; }
