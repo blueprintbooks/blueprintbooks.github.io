@@ -199,6 +199,36 @@
     (parts.length ? page(id, parts[0], parts[1]) : openDefault(id)).catch(function (err) { fail(id, err); });
   }
 
+  // The side menu's width: dragged by the gap after it, a double click gives the usual width back; kept in the browser.
+  function splitter() {
+    var side = $('side'), split = $('split'), drag = null;
+    function setW(w, save) {
+      w = Math.round(Math.max(120, Math.min(600, w)));
+      if (w === 240) document.documentElement.style.removeProperty('--side-w');
+      else document.documentElement.style.setProperty('--side-w', w + 'px');
+      if (save) { if (w === 240) store.del('bb-side-w'); else store.set('bb-side-w', String(w)); }
+    }
+    var kept = parseFloat(store.get('bb-side-w'));
+    if (kept > 0) setW(kept, false);
+    split.addEventListener('pointerdown', function (e) {
+      if (e.button !== 0) return;
+      e.preventDefault();
+      split.setPointerCapture(e.pointerId);
+      drag = { x: e.clientX, w: side.getBoundingClientRect().width };
+      document.body.classList.add('splitting');
+    });
+    split.addEventListener('pointermove', function (e) { if (drag) setW(drag.w + e.clientX - drag.x, false); });
+    function end() {
+      if (!drag) return;
+      drag = null;
+      document.body.classList.remove('splitting');
+      setW(side.getBoundingClientRect().width, true);
+    }
+    split.addEventListener('pointerup', end);
+    split.addEventListener('pointercancel', end);
+    split.addEventListener('dblclick', function () { setW(240, true); });
+  }
+
   function start() {
     $('signin').addEventListener('submit', function (e) {
       e.preventDefault();
@@ -227,6 +257,7 @@
     });
     document.addEventListener('click', function (e) { if (!e.target.closest('#books-menu')) closeBooks(); });
     document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeBooks(); });
+    splitter();
     $('menu-toggle').addEventListener('click', function () { $('side').classList.toggle('closed'); });
     $('side').addEventListener('click', function (e) {
       if (e.target.closest('a') && window.matchMedia('(max-width: 760px)').matches) $('side').classList.add('closed');
