@@ -30,7 +30,7 @@
   var shown = null;   // the book shown, left out of the books menu (null on an error: every book listed)
 
   function clearPages() { store.keys().forEach(function (k) { if (k.slice(0, 3) === 'bb:') store.del(k); }); }
-  function forget() { books = null; listings = {}; navs = {}; shownPage = null; }
+  function forget() { books = null; listings = {}; navs = {}; shownPage = null; titlesRead = null; titlesDone = false; }
   function show() { document.documentElement.classList.remove('hold'); }
   function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
   function href(book, page) { return esc('#/' + encodeURIComponent(book) + (page ? '/' + encodeURIComponent(page) : '')); }
@@ -139,18 +139,29 @@
     });
   }
 
-  // The book's name opens a menu of the other books, read when it is opened.
-  function booksMenu() {
-    var id = current, book = shown;
-    return shelfList().then(function (list) {
-      var others = list.filter(function (b) { return b !== book; });
-      return Promise.all(others.map(function (b) { return nav(b).catch(function () { return null; }); })).then(function (navList) {
-        if (id !== current) return;
-        var html = '';
-        others.forEach(function (b, i) { if (navList[i]) html += '<a href="' + href(b) + '">' + esc(navList[i].title) + '</a>'; });
-        $('books-menu').innerHTML = html || '<span>No other books yet</span>';
+  // The book's name opens a menu of the other books, listed by title. The titles are kept in the browser (bb-titles)
+  // and read again quietly once per visit after the first page is shown, so the menu opens at once with what is kept
+  // and changes only if a book was added, renamed or removed.
+  var titlesRead = null;  // this visit's reading of the titles, started once
+  var titlesDone = false; // and finished
+  function keptTitles() { try { return JSON.parse(store.get('bb-titles')) || {}; } catch (e) { return {}; } }
+  function menuHtml() {
+    var titles = keptTitles(), html = '';
+    Object.keys(titles).sort(function (x, y) { return titles[x].localeCompare(titles[y]); }).forEach(function (b) { if (b !== shown) html += '<a href="' + href(b) + '">' + esc(titles[b]) + '</a>'; });
+    return html || (titlesDone ? '<span>No other books yet</span>' : '<span>Reading the books</span>');
+  }
+  function readTitles() {
+    if (titlesRead) return titlesRead;
+    return (titlesRead = shelfList().then(function (list) {
+      return Promise.all(list.map(function (b) { return nav(b).catch(function () { return null; }); })).then(function (navList) {
+        var titles = {};
+        list.forEach(function (b, i) { if (navList[i]) titles[b] = navList[i].title; });
+        titlesDone = true;
+        var text = JSON.stringify(titles);
+        if (text !== store.get('bb-titles')) store.set('bb-titles', text);
+        if (!$('books-menu').hidden) $('books-menu').innerHTML = menuHtml();
       });
-    });
+    }).catch(function () { titlesRead = null; }));
   }
 
   // Headings get the ids GitHub gives them, so links to a section of a page (#a-heading) find it.
@@ -249,7 +260,7 @@
         runScripts();   // with the page in view, so a script can measure
         scrollToHeading(anchor);
         show();
-        prefetch(book);
+        readTitles().then(function () { prefetch(book); });
       });
     });
   }
@@ -310,6 +321,7 @@
     $('signout').addEventListener('click', function () {
       store.del('bb-token');
       clearPages();
+      store.del('bb-titles');
       forget();
       current++;
       signIn('');
@@ -318,8 +330,8 @@
       e.stopPropagation();
       var open = $('books-menu').hidden;
       if (open) {
-        $('books-menu').innerHTML = '<span>Reading the books</span>';
-        booksMenu().catch(function () { $('books-menu').innerHTML = '<span>The books could not be read</span>'; });
+        $('books-menu').innerHTML = menuHtml();
+        readTitles();
       }
       $('books-menu').hidden = !open;
       $('book-title').setAttribute('aria-expanded', String(open));
