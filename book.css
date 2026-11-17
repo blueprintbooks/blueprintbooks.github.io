@@ -41,6 +41,8 @@ button:focus-visible, a:focus-visible { outline: 1px solid #bdc1c6; outline-offs
 .side a { display: block; color: var(--ink); padding: 2px 0; }
 /* The contents as a book's: a section's name in grey over its pages, set in a little; the page shown is not marked. */
 .side .part + .part { margin-top: 10px; }
+.side .part-pages .part + .part, .side .part-pages a + .part { margin-top: 6px; }
+.side .part-pages .part + a { margin-top: 6px; }
 .side .part-name { color: #888; padding: 2px 0; }
 .side .part-pages { padding-left: 12px; }
 .split { flex: 0 0 12px; align-self: stretch; position: sticky; top: 0; height: 100vh; cursor: col-resize; touch-action: none; }

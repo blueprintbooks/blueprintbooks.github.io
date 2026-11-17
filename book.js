@@ -4,7 +4,8 @@
 // the first. The top bar holds the book's name (its menu lists the other books); #/<book>/<page>#<heading> opens a
 // page at a heading (headings get GitHub's ids), and a link #<heading> in a page goes to that heading of the page
 // shown. The side menu is the book's contents, as a book's: every section of nav.json with its pages, always whole;
-// a section of one page named as the page is that page's line alone. A file
+// an entry in a section's pages is a page ({page, title}) or a section of its own ({section, pages}), so a book has
+// up to three layers (part, chapter, page); a section of one page named as the page is that page's line alone. A file
 // is fetched by its git blob sha and kept in localStorage as bb:<book>:<sha>, so it is downloaded once until it
 // changes; keys of a book no longer in its listing are dropped, and sign-out drops them all.
 (function () {
@@ -193,15 +194,27 @@
 
   function closeBooks() { $('books-menu').hidden = true; $('book-title').setAttribute('aria-expanded', 'false'); }
 
-  // The book's contents: each section as a heading with its pages under it; a section of one page with the page's
-  // own title is the page's line alone (Architecture), so a heading never sits over a single line repeating it.
+  // The book's contents: each section as a heading with its entries set in under it, a page or a section of its own
+  // (as deep as nav.json goes); a section of one page with the page's own title is the page's line alone
+  // (Architecture), so a heading never sits over a single line repeating it.
   function contents(book, n) {
-    return n.sections.map(function (s) {
-      var links = s.pages.map(function (p) { return '<a href="' + href(book, p.page) + '">' + esc(p.title) + '</a>'; }).join('');
-      if (!links) return '';
-      if (s.pages.length === 1 && s.pages[0].title === s.section) return '<div class="part">' + links + '</div>';
-      return '<div class="part"><div class="part-name">' + esc(s.section) + '</div><div class="part-pages">' + links + '</div></div>';
-    }).join('');
+    function entries(list) {
+      return list.map(function (e) {
+        if (!e.section) return '<a href="' + href(book, e.page) + '">' + esc(e.title) + '</a>';
+        var inner = entries(e.pages || []);
+        if (!inner) return '';
+        if (e.pages.length === 1 && !e.pages[0].section && e.pages[0].title === e.section) return '<div class="part">' + inner + '</div>';
+        return '<div class="part"><div class="part-name">' + esc(e.section) + '</div><div class="part-pages">' + inner + '</div></div>';
+      }).join('');
+    }
+    return entries(n.sections);
+  }
+
+  // Every page of a book in the order of its contents.
+  function pagesOf(n) {
+    var out = [];
+    (function walk(list) { list.forEach(function (e) { if (e.section) walk(e.pages || []); else out.push(e); }); })(n.sections);
+    return out;
   }
 
   var shownPage = null;   // book/page shown, so a link to another heading of it only scrolls
@@ -210,7 +223,7 @@
   function page(id, book, name, anchor) {
     if (shownPage === book + '/' + name && name) { shownBy = id; scrollToHeading(anchor); return Promise.resolve(); }
     return nav(book).then(function (n) {
-      var first = n.sections[0] && n.sections[0].pages[0];
+      var first = pagesOf(n)[0];
       name = name || (first && first.page) || 'index';
       var files = listings[book];
       var file = files[name + '.md'] ? name + '.md' : files[name + '.html'] ? name + '.html' : null;
@@ -227,7 +240,7 @@
         shown = book;
         store.set('bb-last', book);
         signedIn(true);
-        var count = n.sections.reduce(function (c, s) { return c + s.pages.length; }, 0);
+        var count = pagesOf(n).length;
         $('side').hidden = count < 2;
         $('menu-toggle').hidden = count < 2;
         if (window.matchMedia('(max-width: 760px)').matches) $('side').classList.add('closed');
