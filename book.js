@@ -101,6 +101,7 @@
   }
 
   function signIn(message) {
+    shownPage = null;
     signedIn(false);
     $('menu-toggle').hidden = true;
     $('books').hidden = true;
@@ -153,36 +154,51 @@
   }
 
   // Headings get the ids GitHub gives them, so links to a section of a page (#a-heading) find it.
+  // Duplicates as github-slugger numbers them: a, a-1, a-2, never an id already given.
   function headingIds() {
-    var seen = {};
-    $('main').querySelectorAll('h1, h2, h3, h4, h5, h6').forEach(function (h) {
+    var hs = $('main').querySelectorAll('h1, h2, h3, h4, h5, h6'), seen = {};
+    hs.forEach(function (h) { if (h.id) seen[h.id] = 1; });
+    hs.forEach(function (h) {
       if (h.id) return;
-      var slug = h.textContent.trim().toLowerCase().replace(/[^\p{L}\p{N}_\- ]/gu, '').replace(/ /g, '-');
-      h.id = seen[slug] ? slug + '-' + seen[slug] : slug;
-      seen[slug] = (seen[slug] || 0) + 1;
+      var base = h.textContent.replace(/\s+/g, ' ').trim().toLowerCase().replace(/[^\p{L}\p{M}\p{N}\p{Pc}\- ]/gu, '').replace(/ /g, '-');
+      var slug = base, n = 0;
+      while (seen[slug]) slug = base + '-' + (++n);
+      seen[slug] = 1;
+      h.id = slug;
     });
   }
 
   // A page's own scripts (an HTML page that draws its figure) run once it is in place.
+  // An inline classic script runs in its own function, so a page opened again does not redeclare its names; a data
+  // block (type application/json, ...) is left as it is.
   function runScripts() {
     $('main').querySelectorAll('script').forEach(function (old) {
+      var type = (old.getAttribute('type') || '').trim().toLowerCase();
+      if (type && type !== 'module' && !/^(text|application)\/(java|ecma)script$/.test(type)) return;
       var s = document.createElement('script');
-      s.textContent = old.textContent;
+      Array.prototype.forEach.call(old.attributes, function (a) { s.setAttribute(a.name, a.value); });
+      s.textContent = old.src || type === 'module' ? old.textContent : '(function () {\n' + old.textContent + '\n})();';
       old.replaceWith(s);
     });
   }
 
   function scrollToHeading(anchor) {
-    var el = anchor && document.getElementById(anchor);
-    if (el && $('main').contains(el)) el.scrollIntoView(); else window.scrollTo(0, 0);
+    var main = $('main'), el = null;
+    if (anchor) {
+      try {
+        el = main.querySelector('[id="' + CSS.escape(anchor) + '"]') || main.querySelector('[id="' + CSS.escape(anchor.toLowerCase()) + '"]');
+      } catch (e) { el = null; }
+    }
+    if (el) el.scrollIntoView(); else window.scrollTo(0, 0);
   }
 
   function closeBooks() { $('books-menu').hidden = true; $('book-title').setAttribute('aria-expanded', 'false'); }
 
   var shownPage = null;   // book/page shown, so a link to another heading of it only scrolls
+  var shownBy = 0;        // the route that showed it
 
   function page(id, book, name, anchor) {
-    if (shownPage === book + '/' + name && name) { scrollToHeading(anchor); return Promise.resolve(); }
+    if (shownPage === book + '/' + name && name) { shownBy = id; scrollToHeading(anchor); return Promise.resolve(); }
     return nav(book).then(function (n) {
       var first = n.sections[0] && n.sections[0].pages[0];
       name = name || (first && first.page) || 'index';
@@ -201,8 +217,8 @@
         $('side').innerHTML = pages.map(function (p) { return '<a href="' + href(book, p.page) + '">' + esc(p.title) + '</a>'; }).join('');
         $('main').innerHTML = file.slice(-3) === '.md' ? marked.parse(text) : text;
         headingIds();
-        runScripts();
         shownPage = book + '/' + name;
+        shownBy = id;
         $('book-title').textContent = n.title;
         $('books').hidden = false;
         shown = book;
@@ -213,6 +229,7 @@
         if (window.matchMedia('(max-width: 760px)').matches) $('side').classList.add('closed');
         var h1 = $('main').querySelector('h1');
         document.title = (h1 ? h1.textContent + ' · ' : '') + n.title;
+        runScripts();   // with the page in view, so a script can measure
         scrollToHeading(anchor);
         show();
         prefetch(book);
@@ -274,7 +291,6 @@
       route();
     });
     $('signout').addEventListener('click', function () {
-      shownPage = null;
       store.del('bb-token');
       clearPages();
       forget();
@@ -297,11 +313,14 @@
     $('menu-toggle').addEventListener('click', function () { $('side').classList.toggle('closed'); });
     // A link to a heading of the page shown (#a-heading) scrolls there; the address keeps the page.
     $('main').addEventListener('click', function (e) {
-      var a = e.target.closest('a[href^="#"]');
-      if (!a || a.getAttribute('href').charAt(1) === '/') return;
+      if (e.ctrlKey || e.metaKey || e.shiftKey || e.altKey || e.button !== 0) return;
+      var a = e.target.closest('a'), XLINK = 'http://www.w3.org/1999/xlink';
+      var h = a && (a.getAttribute('href') || a.getAttributeNS(XLINK, 'href') || '');
+      if (!h || h.charAt(0) !== '#' || h.charAt(1) === '/') return;
       e.preventDefault();
-      var anchor = decodeURIComponent(a.getAttribute('href').slice(1));
-      if (shownPage) history.replaceState(null, '', '#/' + shownPage.split('/').map(encodeURIComponent).join('/') + '#' + encodeURIComponent(anchor));
+      var anchor;
+      try { anchor = decodeURIComponent(h.slice(1)); } catch (err) { anchor = h.slice(1); }
+      if (shownPage && shownBy === current) history.replaceState(null, '', '#/' + shownPage.split('/').map(encodeURIComponent).join('/') + '#' + encodeURIComponent(anchor));
       scrollToHeading(anchor);
     });
     $('side').addEventListener('click', function (e) {
