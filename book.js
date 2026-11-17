@@ -245,7 +245,7 @@
         $('menu-toggle').hidden = count < 2;
         if (window.matchMedia('(max-width: 760px)').matches) $('side').classList.add('closed');
         var h1 = $('main').querySelector('h1');
-        document.title = (h1 ? h1.textContent + ' · ' : '') + n.title;
+        document.title = h1 && h1.textContent !== n.title ? h1.textContent + ' · ' + n.title : n.title;
         runScripts();   // with the page in view, so a script can measure
         scrollToHeading(anchor);
         show();
