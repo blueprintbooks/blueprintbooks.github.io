@@ -4,8 +4,10 @@ A closed reading site for the internal documentation of a set of tools: how each
 its guide. Each tool is one book. The page holds no content: it reads the books from a private repository in the
 browser with a read-only GitHub token, which the visitor types once (a password manager can fill both fields).
 
-- `index.html`, `book.css`, `book.js`: the page. Addresses: `#/` the list of books, `#/<book>` its
-  first page, `#/<book>/<page>` a page. Pages read are kept in the browser until sign-out.
+- `index.html`, `book.css`, `book.js`: the page. Addresses: `#/<book>` its first page,
+  `#/<book>/<page>` a page; `#/` opens the book last read in this browser, else the first. The top bar holds the
+  book's name (a menu of the other books) and its chapters (the sections of its `nav.json`); the side menu lists the
+  pages of the chapter shown. Pages read are kept in the browser until sign-out.
 - `marked.min.js`: marked 12.0.2 (MIT licence), turns the Markdown pages into HTML.
 
 The token is kept in the browser's storage for this origin, which every Pages site of the organisation shares

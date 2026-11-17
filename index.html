@@ -18,8 +18,11 @@
 </head>
 <body>
 <header class="top">
-  <a class="brand" href="#/">Blueprint books</a>
-  <span class="book-title" id="book-title"></span>
+  <div class="books" id="books" hidden>
+    <button type="button" class="book-title" id="book-title" aria-haspopup="true" aria-expanded="false"></button>
+    <div class="books-menu" id="books-menu" hidden></div>
+  </div>
+  <nav class="chapters" id="chapters"></nav>
   <button type="button" class="menu-toggle" id="menu-toggle" aria-label="Menu" hidden>Menu</button>
   <button type="button" class="signout" id="signout" hidden>Sign out</button>
 </header>

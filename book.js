@@ -1,6 +1,8 @@
 // Blueprint books: reads its books from a private repository with the visitor's read-only token, in the browser.
 // The repository's top-level folders are the books; each holds nav.json (title and menu) and its pages (.md or .html).
-// Addresses: #/ the shelf, #/<book> its first page, #/<book>/<page> a page. A file is fetched by its git blob sha and
+// Addresses: #/<book> its first page, #/<book>/<page> a page; #/ opens the book last read in this browser, else the
+// first. The top bar holds the book's name (its menu lists the other books) and the book's chapters (nav.json's
+// sections); the side menu lists the pages of the chapter shown, and is left out for a chapter of one page. A file is fetched by its git blob sha and
 // kept in localStorage as bb:<book>:<sha>, so it is downloaded once until it changes; keys of a book no longer in its
 // listing are dropped, and sign-out drops them all.
 (function () {
@@ -99,7 +101,8 @@
   function signIn(message) {
     signedIn(false);
     $('menu-toggle').hidden = true;
-    $('book-title').textContent = '';
+    $('books').hidden = true;
+    $('chapters').innerHTML = '';
     $('repo').value = store.get('bb-repo') || '';
     $('signin-error').textContent = message || '';
     $('signin-error').hidden = !message;
@@ -114,22 +117,29 @@
     show();
   }
 
-  function shelf(id) {
+  // #/ opens a book: the one last read in this browser, else the first.
+  function openDefault(id) {
     return shelfList().then(function (list) {
-      return Promise.all(list.map(function (b) { return nav(b).catch(function () { return null; }); })).then(function (navList) {
-        if (id !== current) return;
-        var html = '<h1>Books</h1><div class="shelf">';
-        list.forEach(function (b, i) { if (navList[i]) html += '<a href="' + href(b) + '">' + esc(navList[i].title) + '</a>'; });
-        $('main').innerHTML = html + '</div>';
-        $('side').innerHTML = '';
-        $('book-title').textContent = '';
-        $('menu-toggle').hidden = true;
-        document.title = 'Blueprint books';
-        signedIn(true);
-        show();
+      if (id !== current) return;
+      if (!list.length) throw new Error('There are no books yet.');
+      var last = store.get('bb-last');
+      location.replace(href(list.indexOf(last) >= 0 ? last : list[0]).replace(/&amp;/g, '&'));
+    });
+  }
+
+  // The book's name opens a menu of the other books.
+  function booksMenu(book) {
+    return shelfList().then(function (list) {
+      var others = list.filter(function (b) { return b !== book; });
+      return Promise.all(others.map(function (b) { return nav(b).catch(function () { return null; }); })).then(function (navList) {
+        var html = '';
+        others.forEach(function (b, i) { if (navList[i]) html += '<a href="' + href(b) + '">' + esc(navList[i].title) + '</a>'; });
+        $('books-menu').innerHTML = html || '<span>No other books yet</span>';
       });
     });
   }
+
+  function closeBooks() { $('books-menu').hidden = true; $('book-title').setAttribute('aria-expanded', 'false'); }
 
   function page(id, book, name) {
     return nav(book).then(function (n) {
@@ -140,19 +150,26 @@
       if (!file) throw new Error('There is no page "' + name + '" in this book.');
       return blob(book, files[file]).then(function (text) {
         if (id !== current) return;
-        var side = '';
-        n.sections.forEach(function (s) {
-          side += '<h2>' + esc(s.section) + '</h2>';
-          s.pages.forEach(function (p) { side += '<a href="' + href(book, p.page) + '">' + esc(p.title) + '</a>'; });
-        });
-        $('side').innerHTML = side;
+        var chapter = n.sections.filter(function (s) {
+          return s.pages.some(function (p) { return p.page === name; });
+        })[0];
+        $('chapters').innerHTML = n.sections.map(function (s) {
+          return s.pages.length ? '<a href="' + href(book, s.pages[0].page) + '">' + esc(s.section) + '</a>' : '';
+        }).join('');
+        var pages = chapter ? chapter.pages : [];
+        $('side').innerHTML = pages.map(function (p) { return '<a href="' + href(book, p.page) + '">' + esc(p.title) + '</a>'; }).join('');
         $('main').innerHTML = file.slice(-3) === '.md' ? marked.parse(text) : text;
         $('book-title').textContent = n.title;
-        $('menu-toggle').hidden = false;
+        $('books').hidden = false;
+        closeBooks();
+        store.set('bb-last', book);
+        booksMenu(book).catch(function () { /* the menu stays empty */ });
+        signedIn(true);
+        $('side').hidden = pages.length < 2;
+        $('menu-toggle').hidden = pages.length < 2;
         if (window.matchMedia('(max-width: 760px)').matches) $('side').classList.add('closed');
         var h1 = $('main').querySelector('h1');
         document.title = (h1 ? h1.textContent + ' · ' : '') + n.title;
-        signedIn(true);
         window.scrollTo(0, 0);
         show();
         prefetch(book);
@@ -168,7 +185,7 @@
     } catch (e) {
       return fail(id, new Error('This address cannot be read.'));
     }
-    (parts.length ? page(id, parts[0], parts[1]) : shelf(id)).catch(function (err) { fail(id, err); });
+    (parts.length ? page(id, parts[0], parts[1]) : openDefault(id)).catch(function (err) { fail(id, err); });
   }
 
   function start() {
@@ -187,6 +204,14 @@
       current++;
       signIn('');
     });
+    $('book-title').addEventListener('click', function (e) {
+      e.stopPropagation();
+      var open = $('books-menu').hidden;
+      $('books-menu').hidden = !open;
+      $('book-title').setAttribute('aria-expanded', String(open));
+    });
+    document.addEventListener('click', function (e) { if (!e.target.closest('#books-menu')) closeBooks(); });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeBooks(); });
     $('menu-toggle').addEventListener('click', function () { $('side').classList.toggle('closed'); });
     $('side').addEventListener('click', function (e) {
       if (e.target.closest('a') && window.matchMedia('(max-width: 760px)').matches) $('side').classList.add('closed');
