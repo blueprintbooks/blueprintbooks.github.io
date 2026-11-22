@@ -1,7 +1,7 @@
 // Blueprint books: reads its books from a private repository with the visitor's read-only token, in the browser.
 // The repository's top-level folders are the books; each holds nav.json (title and menu) and its pages (.md or .html).
 // Addresses: #/<book> its first page, #/<book>/<page> a page; #/ opens the book last read in this browser, else
-// the first. The top bar holds the book's name (its menu lists the other books); #/<book>/<page>#<heading> opens a
+// the first. The top bar holds the book's name (its menu lists every book); #/<book>/<page>#<heading> opens a
 // page at a heading (headings get GitHub's ids), and a link #<heading> in a page goes to that heading of the page
 // shown. The side menu is the book's contents, as a book's: every section of nav.json with its pages, always whole;
 // an entry in a section's pages is a page ({page, title}) or a section of its own ({section, pages}), so a book has
@@ -27,7 +27,7 @@
   var listings = {};  // book -> {file name: sha}, read once per visit
   var navs = {};      // book -> nav.json
   var current = 0;    // the route being shown; an older one that finishes late is dropped
-  var shown = null;   // the book shown, left out of the books menu (null on an error: every book listed)
+  var shown = null;   // the book shown, marked in the books menu (null on an error: none marked)
 
   function clearPages() { store.keys().forEach(function (k) { if (k.slice(0, 3) === 'bb:') store.del(k); }); }
   function forget() { books = null; listings = {}; navs = {}; shownPage = null; titlesRead = null; titlesDone = false; }
@@ -139,16 +139,16 @@
     });
   }
 
-  // The book's name opens a menu of the other books, listed by title. The titles are kept in the browser (bb-titles)
-  // and read again quietly once per visit after the first page is shown, so the menu opens at once with what is kept
-  // and changes only if a book was added, renamed or removed.
+  // The book's name opens a menu of every book, listed by title, the open one on a pale grey row with a thin bar.
+  // The titles are kept in the browser (bb-titles) and read again quietly once per visit after the first page is
+  // shown, so the menu opens at once with what is kept and changes only if a book was added, renamed or removed.
   var titlesRead = null;  // this visit's reading of the titles, started once
   var titlesDone = false; // and finished
   function keptTitles() { try { return JSON.parse(store.get('bb-titles')) || {}; } catch (e) { return {}; } }
   function menuHtml() {
     var titles = keptTitles(), html = '';
-    Object.keys(titles).sort(function (x, y) { return titles[x].localeCompare(titles[y]); }).forEach(function (b) { if (b !== shown) html += '<a href="' + href(b) + '">' + esc(titles[b]) + '</a>'; });
-    return html || (titlesDone ? '<span>No other books yet</span>' : '<span>Reading the books</span>');
+    Object.keys(titles).sort(function (x, y) { return titles[x].localeCompare(titles[y]); }).forEach(function (b) { html += '<a href="' + href(b) + '"' + (b === shown ? ' class="open"' : '') + '>' + esc(titles[b]) + '</a>'; });
+    return html || (titlesDone ? '<span>No books yet</span>' : '<span>Reading the books</span>');
   }
   function readTitles() {
     if (titlesRead) return titlesRead;
