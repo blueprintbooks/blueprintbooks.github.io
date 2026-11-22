@@ -139,7 +139,7 @@
     });
   }
 
-  // The book's name opens a menu of every book, listed by title, the open one on a pale grey row with a thin bar.
+  // The book's name opens a menu of every book, listed by title, the open one on a pale grey row.
   // The titles are kept in the browser (bb-titles) and read again quietly once per visit after the first page is
   // shown, so the menu opens at once with what is kept and changes only if a book was added, renamed or removed.
   var titlesRead = null;  // this visit's reading of the titles, started once

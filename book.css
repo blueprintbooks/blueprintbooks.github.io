@@ -19,10 +19,9 @@ button:focus-visible, a:focus-visible { outline: 1px solid #bdc1c6; outline-offs
 .top .book-title:hover { background: none; }
 .books-menu { position: absolute; left: 0; top: 100%; margin-top: 6px; min-width: 200px; background: #fff; border: 1px solid #ddd; border-radius: 4px; padding: 4px 0; z-index: 10; box-shadow: 0 2px 6px rgba(0,0,0,.06); }
 .books-menu a, .books-menu span { display: block; padding: 4px 14px; color: #666; font-size: 15px; white-space: nowrap; }
-.books-menu a { border-left: 2px solid transparent; padding-left: 12px; }
 .books-menu a:hover { background: var(--hover); }
-/* The open book: a pale grey row with a thin grey bar at its edge; the text unchanged, no hover. */
-.books-menu a.open, .books-menu a.open:hover { background: #f6f7f8; border-left-color: #bbb; }
+/* The open book: a pale grey row; the text unchanged, no hover. */
+.books-menu a.open, .books-menu a.open:hover { background: #f6f7f8; }
 .books-menu span { color: #aaa; }
 .top .signout { margin-left: auto; border: 0; padding: 0; color: #aaa; font-size: 13px; }
 .top .signout:hover { background: none; }
