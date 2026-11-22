@@ -7,7 +7,8 @@ browser with a read-only GitHub token, which the visitor types once (a password 
 - `index.html`, `book.css`, `book.js`: the page. Addresses: `#/<book>` its first page,
   `#/<book>/<page>` a page; `#/` opens the book last read in this browser, else the first. The top bar holds the
   book's name (a menu of every book, the open one on a pale grey row); the side menu is the book's contents, every
-  section of its `nav.json` with its pages, where an entry may be a section of its own (up to three layers: part, chapter, page; a section of one
+  section of its `nav.json` with its pages (its width dragged by the gap after it, as the viewer's list: out of sight
+  under 60 px, a click on the gap brings it back, a double click the usual width), where an entry may be a section of its own (up to three layers: part, chapter, page; a section of one
   page named as the page shows as that page alone). `#/<book>/<page>#<heading>` opens a page at a heading (GitHub's heading ids), a link
   `#<heading>` in a page scrolls to it, and an HTML page's own scripts run (a figure drawn by the page). Pages read are kept in the browser until sign-out.
 - `marked.min.js`: marked 12.0.2 (MIT licence), turns the Markdown pages into HTML.

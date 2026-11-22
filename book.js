@@ -279,34 +279,47 @@
     (parts.length ? page(id, parts[0], parts[1], anchor) : openDefault(id)).catch(function (err) { fail(id, err); });
   }
 
-  // The side menu's width: dragged by the gap after it, a double click gives the usual width back; kept in the browser.
+  // The side menu's width, as the viewer's list: dragged by the gap after it to any width up to 600 px, out of sight
+  // under 60 px (the gap stays at the page's edge and a click on it brings the menu back), a double click gives the
+  // usual width back; kept in the browser (bb-side-w, 0 when out of sight).
   function splitter() {
-    var side = $('side'), split = $('split'), drag = null;
+    var side = $('side'), split = $('split'), layout = $('layout'), drag = null, USUAL = 240, last = USUAL;
+    split.title = 'Drag to change the width of the menu; double-click for the usual width';
     function setW(w, save) {
-      w = Math.round(Math.max(120, Math.min(600, w)));
-      if (w === 240) document.documentElement.style.removeProperty('--side-w');
+      w = Math.round(Math.max(0, Math.min(600, w)));
+      var shut = w < 60;
+      if (shut) w = 0; else last = w;
+      layout.classList.toggle('side-shut', shut);
+      if (w === USUAL) document.documentElement.style.removeProperty('--side-w');
       else document.documentElement.style.setProperty('--side-w', w + 'px');
-      if (save) { if (w === 240) store.del('bb-side-w'); else store.set('bb-side-w', String(w)); }
+      if (save) { if (w === USUAL) store.del('bb-side-w'); else store.set('bb-side-w', String(w)); }
     }
     var kept = parseFloat(store.get('bb-side-w'));
-    if (kept > 0) setW(kept, false);
+    if (kept >= 0) setW(kept, false);
     split.addEventListener('pointerdown', function (e) {
       if (e.button !== 0) return;
       e.preventDefault();
       split.setPointerCapture(e.pointerId);
-      drag = { x: e.clientX, w: side.getBoundingClientRect().width };
+      var shut = layout.classList.contains('side-shut');
+      drag = { x: e.clientX, w: shut ? 0 : side.getBoundingClientRect().width, moved: false };
       document.body.classList.add('splitting');
     });
-    split.addEventListener('pointermove', function (e) { if (drag) setW(drag.w + e.clientX - drag.x, false); });
+    split.addEventListener('pointermove', function (e) {
+      if (!drag) return;
+      if (Math.abs(e.clientX - drag.x) > 3) drag.moved = true;
+      if (drag.moved) setW(drag.w + e.clientX - drag.x, false);
+    });
     function end() {
       if (!drag) return;
+      var d = drag;
       drag = null;
       document.body.classList.remove('splitting');
-      setW(side.getBoundingClientRect().width, true);
+      if (!d.moved && layout.classList.contains('side-shut')) setW(last, true);
+      else setW(layout.classList.contains('side-shut') ? 0 : side.getBoundingClientRect().width, true);
     }
     split.addEventListener('pointerup', end);
     split.addEventListener('pointercancel', end);
-    split.addEventListener('dblclick', function () { setW(240, true); });
+    split.addEventListener('dblclick', function () { setW(USUAL, true); });
   }
 
   function start() {
