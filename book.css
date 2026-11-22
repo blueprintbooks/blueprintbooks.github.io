@@ -36,11 +36,11 @@ button:focus-visible, a:focus-visible { outline: 1px solid #bdc1c6; outline-offs
 .signin input:focus { border-color: #999; }
 .signin .error { color: #a33; margin-top: 14px; }
 
-.layout { display: flex; align-items: flex-start; max-width: 1240px; margin: 0 auto; }
+.layout { display: flex; align-items: flex-start; max-width: 1400px; margin: 0 auto; }
 /* The side menu 240 px wide as the viewer's list; the gap after it (.split) dragged sideways sets its width, out of
    sight under 60 px, a double click gives the usual width back, kept in the browser (bb-side-w). Nothing drawn in the
    gap, the cursor shows it. */
-.side { flex: 0 0 var(--side-w, 240px); position: sticky; top: 0; max-height: 100vh; overflow-y: auto; padding: 20px 12px 40px 24px; font-size: 14px; }
+.side { flex: 0 0 var(--side-w, 240px); position: sticky; top: 0; max-height: 100vh; overflow-y: auto; padding: 20px 12px 40px 12px; font-size: 14px; }
 .side a { display: block; color: var(--ink); padding: 2px 0; }
 /* The contents as a book's: a section's name in grey over its pages, set in a little; the page shown is not marked. */
 .side .part + .part { margin-top: 10px; }
@@ -53,7 +53,7 @@ button:focus-visible, a:focus-visible { outline: 1px solid #bdc1c6; outline-offs
 /* Out of sight (dragged under 60 px): the gap stays at the page's edge, a click on it brings the menu back. */
 @media (min-width: 761px) { .layout.side-shut .side { display: none; } }
 body.splitting, body.splitting * { cursor: col-resize !important; user-select: none; }
-main { flex: 1 1 auto; min-width: 0; padding: 16px 32px 60px; }
+main { flex: 1 1 auto; min-width: 0; padding: 16px 16px 60px; }
 main h1 { font-size: 28px; font-weight: 600; margin: 8px 0 16px; }
 main h2 { font-size: 21px; font-weight: 600; margin: 28px 0 10px; }
 main h3 { font-size: 17px; font-weight: 600; margin: 22px 0 8px; }
